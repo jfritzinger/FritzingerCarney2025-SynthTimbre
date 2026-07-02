@@ -1,18 +1,42 @@
-function fig11_dog_analysis_plots(save_fig)
+function fig9_dog_analysis(save_fig)
+% FIG9_DOG_ANALYSIS Generates Figure 9 evaluating Difference-of-Gaussians (DoG) receptive field models.
+%
+% PURPOSE:
+%   This function evaluates the performance of a Difference-of-Gaussians (DoG) receptive field 
+%   model versus a classical Gaussian framework. It illustrates an example firing rate fit 
+%   profile overlaying standard data tracks, isolates the underlying predictive filter kernels 
+%   (DoG versus Gaussian amplitude configurations), produces an adjusted R^2 scatter correlation 
+%   highlighting statistical significance, and displays a parameter ratio scatter quadrant mapping 
+%   inhibitory/excitatory bandwidths and gain strengths across a subset of highly predictable neurons.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a 2x2 multi-panel receptive field model tracking figure. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - analyzeRM()               : Analyzes Response Area / Rate-Intensity Matrix data
+%   - dog_model()               : Evaluates the Difference-of-Gaussians filter kernel equation
+%   - gaussian_model()          : Evaluates standard single Gaussian kernel function
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up (Original framework dated for 2025 manuscript)
 
 %% Load in fits  
 
 [~, datapath, ~, ppi] = get_paths();
 load(fullfile(datapath, 'dog_analysis.mat'), "R2_gauss_all", "R2_dog_all", "dog_analysis")
-%addpath('/Users/jfritzinger/Projects/shared-models/DoG-model', '-begin')
+addpath('/Users/johannafritzinger/Projects/shared-models/DoG-model', '-begin')
 
 %% Plot example fit 
 
-fig = figure('Position',[50,50,3.356*ppi,3.2*ppi]);
+figure('Position',[50,50,3.356*ppi,3.2*ppi]);
 tiledlayout(2, 2, 'Padding','compact')
 legsize = 6;
 fontsize = 7;
-titlesize = 8;
 labelsize = 13;
 linewidth = 1;
 scattersize = 12;
@@ -26,7 +50,7 @@ putative = 'R24_TT2_P13_N02';
 ind = cellfun(@(d) strcmp(d, putative), {dog_analysis.putative});
 
 % Load in to get spont rate
-load(fullfile(datapath, 'neural_data', [putative '.mat']))
+load(fullfile(datapath, 'neural_data', [putative '.mat']), 'data')
 params_RM = data{2, 2};
 data_RM = analyzeRM(params_RM);
 spont = data_RM.spont;
@@ -116,10 +140,8 @@ good_fit = [dog_analysis.R2_dog]>0.5;
 % Plot 
 all_dog_params = [dog_analysis(good_fit).dog_params];
 all_dog_params = reshape(all_dog_params, 5,[])'; % 6 for OG, 5 for new
-CFs = [dog_analysis(good_fit).CF];
 
 % Un-log CF_exc, CF_inh
-CF_exc = 10.^all_dog_params(:,5);
 s_exc = 10.^all_dog_params(:,3);
 s_inh = 10.^all_dog_params(:,4);
 g_exc = all_dog_params(:,1);
@@ -170,8 +192,10 @@ for ii = 1:4
 end
 
 %% Save figure 
+
 if save_fig == 1
-	filename = 'fig11_dog_analysis_plots';
+    filename = 'fig9_dog_analysis';
 	save_figure(filename)
 end
+
 end

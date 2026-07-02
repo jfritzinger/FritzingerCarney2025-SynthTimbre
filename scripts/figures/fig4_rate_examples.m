@@ -1,14 +1,40 @@
-function fig4_single_unit_examples(save_fig)
+function fig4_rate_examples(save_fig)
+% FIG4_RATE_EXAMPLES Generates Figure 4 showing physiological single-unit examples.
+%
+% PURPOSE:
+%   This function visualizes real neural firing rate responses alongside stimulus 
+%   magnitude envelopes for 9 representative neurons. It uses a dual-axis (yyaxis) 
+%   layout to overlay the average firing rates (left axis, green) and smoothed rates 
+%   (black) against the acoustic stimulus harmonics (right axis, grey) across 
+%   different classification types ("Peak", "Dip", "Sloping").
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a 3x3 multi-panel single-unit matrix plot. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - analyzeRM()               : Analyzes Response Map data
+%   - analyzeST()               : Analyzes synthetic timbre neural data structure
+%   - generate_ST()             : Generates synthetic timbre stimulus structural params
+%   - smooth_rates()            : Smooths physiological rate vectors relative to CF
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up (Original code version 2025 manuscript)
 
 %% Load in spreadsheet
 
 [~, datapath, ~, ppi] = get_paths();
-spreadsheet_name = 'Data_Table.xlsx';
+spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
 
 %% Set up figure
 
 figure('Position',[50,50,4.567*ppi,3.7*ppi])
+h = gobjects(9, 1);
 data_colors = {'#03882F', '#82BB95'};
 legsize = 6;
 fontsize = 7;
@@ -48,8 +74,6 @@ for ineuron = 1:9
 	rlb = data_ST.rlb;
 	rub = data_ST.rub;
 	fpeaks = data_ST.fpeaks;
-	spl = data_ST.spl;
-	rate_sm = data_ST.rates_sm;
 	max_rate = max(rate);
 
 	% Parameters
@@ -68,11 +92,9 @@ for ineuron = 1:9
 	% Create the Stimulus Gating function
 	fs = params.Fs;
 	npts = floor(params.dur*fs);
-	gate = tukeywin(npts,2*params.ramp_dur/params.dur); %raised cosine ramps
 
 	% Generate stimuli for all presentations
 	params.stim = zeros(nstim*params.mnrep, npts);
-	presentation = 0; %this value is used as an index for storing a stumulus presentation in the 3rd dimenstion of 'stimuli'
 	
 	% Compute one stimulus waveform.
 	this_fpeak = params.fpeaks(1); % Get peak freq for this presentation
@@ -98,10 +120,11 @@ for ineuron = 1:9
 	interval = zeros(1,length(t));
 
 	% Make the stimulus for this_fpeak
-	shift = this_fpeak - params.fpeak_mid; % a negative values for low fpeaks; 0 at center; positive for high fpeaks
-	%figure
-	
+	shift = this_fpeak - params.fpeak_mid; % a negative values for low fpeaks; 0 at center; positive for high fpeaks	
 	h(ineuron) = subplot(3, 3, ineuron);
+    shifted_harms = zeros(num_harmonics, 1);
+    shifted_harms_re_CF = zeros(num_harmonics, 1);
+    level = zeros(num_harmonics, 1);
 	for iharm = 1:num_harmonics
 		comp_freq = (harmonics(iharm) + shift);
 		if comp_freq > 75 % Hz; make sure we don't include comps outside calibrated range (Note: because we'll lop off components, then scale to, say, 70 dB SPL overall - the comp amps will change whenever one component is eliminated.
@@ -140,13 +163,11 @@ for ineuron = 1:9
 	h(ineuron).YAxis(1).Color = 'k';
 	h(ineuron).YAxis(2).Color = [0.4 0.4 0.4];
 
-	% Plot
-	fpeaks_re_CF = log2(fpeaks/CF);
-
 	params = data(7, 2);
 	params = params(~cellfun(@isempty, params));
 	params = params{1};
 
+    % Plot
 	yyaxis left
 	hold on
 	rates_sm = smooth_rates(rate, rlb, rub, CF);
@@ -171,18 +192,9 @@ for ineuron = 1:9
 	end
 
 	if ineuron > 6
-		xlabel('Spectral Peak Freq. (Hz)')
-		%xlabel('Spectral Peak Freq. w.r.t. CF (oct)')
+		xlabel('Spectral Peak Freq. (kHz)')
 	end
 
-	% Legend
-	if ineuron == 9 || ineuron == 3
-		% hLeg = legend({'', 'Data', 'Smoothed Data', 'Spont Rate', 'CF'}, ...
-		% 	'Location','southwest', 'fontsize', legsize);
-		% hLeg.ItemTokenSize = [12, 12];
-	end
-
-	%xlim([-1 1])
 	if ineuron == 1 || ineuron == 4 || ineuron == 7
 		xlim([0.4 2.4])
 	elseif ineuron == 2 || ineuron == 5 || ineuron == 8
@@ -233,8 +245,10 @@ annotation('textbox',[0 bottom(1) 0.0826 0.0385],'String',{'C'},...
 	'FontWeight','bold','FontSize',labelsize,'EdgeColor','none');
 
 %% Save figure 
+
 if save_fig == 1
-	filename = 'fig4_single_unit_examples';
+	filename = 'fig4_rate_examples';
 	save_figure(filename)
 end
+
 end

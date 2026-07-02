@@ -1,38 +1,47 @@
 function supp1_data_distribution(save_fig)
-% J. Fritzinger, updated 12/15/23
+% FIG_S1_DATA_DISTRIBUTION Generates Figure S1 illustrating data distribution metrics.
 %
-% This script loads in the putative neurons spreadsheet and plots the MTF
-% distribution, BMF distribution, WMF distribution, hybrid BMF/WMF
-% distribution, and CF distribution for all neurons
+% PURPOSE:
+%   This function filters a primary master directory database down to single-unit 
+%   recordings possessing valid synthetic timbre test presentations. It constructs 
+%   a four-panel data summary displaying the population characteristic frequency (CF) 
+%   distribution, Modulation Transfer Function (MTF) configuration counts (BE, BS, 
+%   Hybrid, Flat), and log-spaced Best Modulation Frequency (BMF) / Worst Modulation 
+%   Frequency (WMF) geometric histogram clusters containing central median anchors.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a 1x4 horizontal summary plot tracking data metrics. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 12/15/23 (Prepared for repository publication release)
 
 %% Load in spreadsheet
 
 [~, datapath, ~, ppi] = get_paths();
-spreadsheet_name = 'Data_Table.xlsx';
+spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
-num_units = size(sessions, 1);
 
 %% Set up figure
 
 figure('Position',[50,50,6.9*ppi,1.5*ppi])
 tiledlayout(1, 4, 'Padding','compact')
-legsize = 6;
 fontsize = 7;
 titlesize = 8;
 labelsize = 13;
-linewidth = 1;
 
-%% Only get sessions with synthetic timbre
+%% Only get sessions with synthetic timbre 
 
 synth(:,1) = cellfun(@(s) contains(s, 'R'), sessions.ST_43dB);
 synth(:,2) = cellfun(@(s) contains(s, 'R'), sessions.ST_63dB);
 synth(:,3) = cellfun(@(s) contains(s, 'R'), sessions.ST_73dB);
 synth(:,4) = cellfun(@(s) contains(s, 'R'), sessions.ST_83dB);
-
-% synth(:,5) = cellfun(@(s) contains(s, 'R'), sessions.ST_43dB_100);
-% synth(:,6) = cellfun(@(s) contains(s, 'R'), sessions.ST_63dB_100);
-% synth(:,8) = cellfun(@(s) contains(s, 'R'), sessions.ST_83dB_100);
-
 synth(:,5) = cellfun(@(s) contains(s, 'R'), sessions.ST_43dB_con);
 synth(:,6) = cellfun(@(s) contains(s, 'R'), sessions.ST_63dB_con);
 synth(:,7) = cellfun(@(s) contains(s, 'R'), sessions.ST_73dB_con);
@@ -41,7 +50,7 @@ synth(:,8) = cellfun(@(s) contains(s, 'R'), sessions.ST_83dB_con);
 any_synth = any(synth(:,1:8), 2);
 table = sessions(any_synth, :);
 
-% Output num units
+% Output num units 
 fprintf('Synth timbre total: %d\n', sum(any_synth))
 fprintf('Synth timbre @ 200 Hz, 43 dB SPL: %d\n', sum(synth(:,1)))
 fprintf('Synth timbre @ 200 Hz, 63 dB SPL: %d\n', sum(synth(:,2)))
@@ -61,7 +70,7 @@ names = categorical({'<0.5', '0.5-1', '1-2', '2-4', '4-8', '8+'});
 names = reordercats(names,{'<0.5', '0.5-1', '1-2', '2-4', '4-8', '8+'});
 CF = CFs;
 CF(CF==0) = [];
-[N, edges1] = histcounts(CF, edges);
+[N, ~] = histcounts(CF, edges);
 
 % Plot
 nexttile
@@ -169,7 +178,7 @@ fprintf('Min WMF = %d Hz\n', min(WMFs))
 fprintf('Max WMF = %d Hz\n', round(max(WMFs)))
 fprintf('Median WMF = %d Hz\n', round(median(WMFs)))
 
-%% Annotations
+%% Annotations 
 
 left = linspace(0.01, 0.73, 4);
 annotation('textbox',[left(1) 0.96 0.0826 0.0385],'String',{'A'},...
@@ -181,9 +190,11 @@ annotation('textbox',[left(3) 0.96 0.0826 0.0385],'String',{'C'},...
 annotation('textbox',[left(4) 0.96 0.0826 0.0385],'String',{'D'},...
 	'FontWeight','bold','FontSize',labelsize,'EdgeColor','none');
 
-%% Save figure
+%% Save figure 
+
 if save_fig == 1
-	filename = 'figS1_data_distribution';
+	filename = 'fig_s1_data_distribution';
 	save_figure(filename)
 end
+
 end

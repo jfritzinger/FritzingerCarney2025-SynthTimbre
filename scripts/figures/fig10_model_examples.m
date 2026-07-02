@@ -1,13 +1,35 @@
-function fig9_model_examples(save_fig)
+function fig10_model_examples(save_fig)
+% FIG10_MODEL_EXAMPLES Generates Figure 10 showing computational model fits and comparisons.
+%
+% PURPOSE:
+%   This function simulates and plots single-unit neural response curves against 
+%   three distinct auditory computational models: Energy, Same-Frequency Inhibition-Excitation 
+%   (SFIE), and Lateral/Broad Inhibition models. It evaluates model tracking capabilities across 
+%   six representative physiological examples (BE/BS types) and provides population-level 
+%   goodness-of-fit distributions ($R$ values) via dual scatter plots accompanied by 
+%   marginal histograms.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a complex multi-panel model evaluation and tracking summary. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - analyzeRM()               : Analyzes Response Area / Rate-Intensity Matrix data
+%   - analyzeST()               : Analyzes synthetic timbre neural data structure
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up (Original framework dated for 2025 manuscript)
 
 %% Create figure
 
 [~, datapath, ~, ppi] = get_paths();
 figure('Position',[50,50,5.8*ppi,4.1*ppi])
-
 legsize = 6;
 fontsize = 7;
-titlesize = 8;
 labelsize = 13;
 linewidth = 1;
 scattersize = 16;
@@ -81,46 +103,21 @@ for ii = 1:6
 	plot(data_ST.fpeaks,rate_sm, 'linewidth', linewidth,'Color','k');
 	yline(data_RM.spont, 'k')
 
-	% Normalize and plot models
-	%plot(data_ST.fpeaks, zscore(energy{ispl}.rate), 'LineWidth',linewidth, 'Color','#4634F1')
-	%plot(data_ST.fpeaks, zscore(SFIE{ispl}.rate), 'LineWidth',linewidth, 'Color','#009E73')
-	%plot(data_ST.fpeaks, zscore(lat_inh{ispl}.rate), 'LineWidth',linewidth, 'Color','#D55E00')
-
 	% Scale models
-	spont = data_RM.spont;
 	max_rate = max(rate_sm);
 	energy_rate = energy{ispl}.rate .* (max_rate/max(energy{ispl}.rate));
 	SFIE_rate = SFIE{ispl}.rate .* (max_rate/max(SFIE{ispl}.rate));
 	lat_inh_rate = lat_inh{ispl}.rate .* (max_rate/max(lat_inh{ispl}.rate));
-
+	
 	% Plot
 	plot(data_ST.fpeaks, energy_rate, 'LineWidth',linewidth, 'Color','#4634F1')
 	plot(data_ST.fpeaks, SFIE_rate, 'LineWidth',linewidth, 'Color','#009E73')
 	plot(data_ST.fpeaks, lat_inh_rate, 'LineWidth',linewidth, 'Color','#D55E00')
 
-	% Annotate SFIE model R^2
-	% message = sprintf('R^2 SFIE = %.02f', SFIE{ispl}.R2);
-	% text(0.05, 0.25, message, 'Units', 'normalized', ...
-	% 	'VerticalAlignment', 'top', 'FontSize',legsize, 'Color',...
-	% 	'#009E73')
-	% % Annotate energy model R^2
-	% message = sprintf('R^2 Energy = %.02f', energy{ispl}.R2);
-	% text(0.05, 0.15, message, 'Units', 'normalized', ...
-	% 	'VerticalAlignment', 'top', 'FontSize',legsize, 'Color',...
-	% 	'#4634F1')
-	% % Annotate lateral inhibition model R^2
-	% message = sprintf('R^2 Broad inh = %.02f', lat_inh{ispl}.R2);
-	% text(0.05, 0.35, message, 'Units', 'normalized', ...
-	% 	'VerticalAlignment', 'top', 'FontSize',legsize, 'Color',...
-	% 	'#D55E00')
-
 	% Plot parameters
 	plot_range = [param_ST{1}.fpeaks(1) param_ST{1}.fpeaks(end)];
 	xline(CF, '--', 'Color',[0.7 0.7 0.7], 'linewidth', linewidth+1)
 	xlim(plot_range)
-	if ii == 1
-		xticks([3200 3600 4000 4400 4800]);
-	end
 	ticks = xticks;
 	xticklabels(ticks./1000)
 	if ii == 5 || ii == 6
@@ -153,9 +150,8 @@ end
 %%
 
 % Load in spreadsheet
-spreadsheet_name = 'model_r2_values_ST2.xlsx';
+spreadsheet_name = 'model_r2_values_ST.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
-num_data = size(sessions, 1);
 subplot_numbers = [7, 10];
 isSPL = sessions.SPL == 63;
 for ii = 1:2
@@ -166,7 +162,7 @@ for ii = 1:2
 		%isnotsig = sessions.p_s_e>0.05;
 		x_R2 = sessions.Energy_R(isBS & isSPL);
 		x_R22 = sessions.Energy_R(isBE & isSPL);
-
+		
 		y_R2 = sessions.SFIE_R(isBS & isSPL);
 		y_R22 = sessions.SFIE_R(isBE & isSPL);
 	elseif ii == 2
@@ -238,19 +234,30 @@ for ii = 1:2
 	box off
 end
 
+%% Stats 
+% 
+% energy_good = sessions.Energy_R(isSPL);
+% energy_perc = sum(energy_good>0.7)/length(energy_good)*100;
+% 
+% sfie_good = sessions.SFIE_R(isSPL);
+% sfie_perc = sum(sfie_good>0.4)/length(sfie_good)*100;
+% 
+% lat_inh_good = sessions.Lat_Inh_R(isSPL);
+% lat_inh_perc = sum(lat_inh_good>0.4)/length(lat_inh_good)*100;
+
 %% Number of neurons.....
-
-% Neurons that have all three model predictions R^2 > 0.85. Out of 127
-num_good = sum(sessions.Energy_R2 > 0.4 & sessions.SFIE_R2 > 0.4 & ...
-	sessions.Lat_Inh_R2 > 0.4 & sessions.SPL == 63);
-
-% All units with model predictions < 0.4
-num_bad = sum(sessions.Energy_R2 < 0.4 & sessions.SFIE_R2 < 0.4 & ...
-	sessions.Lat_Inh_R2 < 0.4 & sessions.SPL == 63);
-
-% Number of broad-inhibition model better than other models
-num_inh = sum(sessions.Lat_Inh_R2 > sessions.Energy_R2 & ...
-	sessions.Lat_Inh_R2 > sessions.SFIE_R2 & sessions.SPL == 63);
+% 
+% % Neurons that have all three model predictions R^2 > 0.85. Out of 127
+% num_good = sum(sessions.Energy_R2 > 0.4 & sessions.SFIE_R2 > 0.4 & ...
+% 	sessions.Lat_Inh_R2 > 0.4 & sessions.SPL == 63);
+% 
+% % All units with model predictions < 0.4
+% num_bad = sum(sessions.Energy_R2 < 0.4 & sessions.SFIE_R2 < 0.4 & ...
+% 	sessions.Lat_Inh_R2 < 0.4 & sessions.SPL == 63);
+% 
+% % Number of broad-inhibition model better than other models 
+% num_inh = sum(sessions.Lat_Inh_R2 > sessions.Energy_R2 & ...
+% 	 sessions.Lat_Inh_R2 > sessions.SFIE_R2 & sessions.SPL == 63);
 
 %% Arrange
 
@@ -266,7 +273,7 @@ set(h(4), 'Position', [left(2) bottom(2) width height])
 set(h(5), 'Position', [left(1) bottom(1) width height])
 set(h(6), 'Position', [left(2) bottom(1) width height])
 
-% Annotate
+% Annotate 
 left = [0.01 0.275];
 bottom = linspace(0.32, 0.91, 3);
 annotation('textbox',[left(1) 0.97 0.0826 0.0385],'String',{'A'},...
@@ -283,9 +290,9 @@ annotation('textbox',[left(2) bottom(1) 0.0826 0.0385],'String',{'F'},...
 	'FontWeight','bold','FontSize',labelsize,'EdgeColor','none');
 
 %%
-% Arrange plots
+% Arrange plots 
 all_fig_positions = ...
-	[0.68,0.15,0.29,0.32;...
+   [0.68,0.15,0.29,0.32;...
 	0.68,0.64,0.29,0.32]; % left bottom width height
 
 subplot_numbers = [10, 7];
@@ -307,9 +314,11 @@ for ii = 1:2
 		'EdgeColor','none');
 end
 
-%% Save figure
+%% Save figure 
+
 if save_fig == 1
-	filename = 'fig9_model_examples';
+	filename = 'fig10_model_examples';
 	save_figure(filename)
 end
+
 end

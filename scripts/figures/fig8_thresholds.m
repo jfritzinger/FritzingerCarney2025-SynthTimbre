@@ -1,27 +1,53 @@
-function fig8_plot_thresholds(save_fig)
-%% Load in data
+function fig8_thresholds(save_fig)
+% FIG8_PLOT_THRESHOLDS Generates Figure 8 illustrating population thresholds.
+%
+% PURPOSE:
+%   This function visualizes behavioral-style neural thresholds calculated from 
+%   single-unit responses to the synthetic timbre stimulus. It highlights an individual 
+%   example cell alongside its computed slope threshold, evaluates dataset thresholds 
+%   compared to psychophysical human benchmarks (4% threshold line), displays thresholds 
+%   as a function of characteristic frequency (CF), and tracks threshold sensitivity changes 
+%   (categorized via slopes into increasing, decreasing, or unchanging groups) across 
+%   acoustic level conditions.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a structured multi-panel population threshold figure. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - analyzeRM()               : Analyzes Response Area / Rate-Intensity Matrix data
+%   - analyzeST()               : Analyzes synthetic timbre neural data structure
+%   - smooth_rates()            : Smooths physiological vector tracks relative to CF
+%   - calculateThresholds()     : Extracts percentage threshold boundaries from rate functions
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up (Original framework dated for 2025 manuscript)
 
-[base, datapath, ~, ppi] = get_paths();
+%% Load in data 
+
+[~, datapath, ~, ppi] = get_paths();
 tables = readtable(fullfile(datapath, "peak_picking_w_thresholds.xlsx"));
-
-spreadsheet_name = 'Data_Table.xlsx';
+spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
 
 
-%% Set up figure
+%% Set up figure 
 
 figure('Position',[50,50,4.567*ppi,3*ppi])
 %data_colors = {'#03882F', '#82BB95'};
 data_colors = {'#000000'};
 legsize = 6;
 fontsize = 7;
-titlesize = 8;
 linewidth = 1;
 labelsize = 13;
-scattersize = 10;
+scattersize = 10; 
 capsize = 2;
 
-%% Example unit
+%% Example unit 
 
 examples = {'R24_TT2_P13_N05', 'R27_TT2_P8_N02', 'R27_TT2_P8_N05', ...
 	'R25_TT2_P9_N01', 'R27_TT3_P1_N08', 'R27_TT2_P7_N01', ...
@@ -35,7 +61,6 @@ filename = sprintf('%s.mat', putative);
 load(fullfile(datapath,'neural_data', filename), 'data');
 index = find(cellfun(@(s) strcmp(putative, s), sessions.Putative_Units));
 CF = sessions.CF(index);
-MTF_shape = sessions.MTF{index};
 
 % RM to get spont
 params_RM = data{2, 2};
@@ -49,17 +74,11 @@ data_ST  = analyzeST(params, CF);
 data_ST = data_ST{1};
 rate = data_ST.rate;
 rate_std = data_ST.rate_std;
-rlb = data_ST.rlb;
-rub = data_ST.rub;
 fpeaks = data_ST.fpeaks;
-spl = data_ST.spl;
-rate_sm = data_ST.rates_sm;
 max_rate = max(rate);
 
 % Plot
-fpeaks_re_CF = log2(fpeaks/CF);
 hold on
-rates_sm = smooth_rates(rate, rlb, rub, CF);
 errorbar(fpeaks./1000, rate, rate_std/sqrt(params{1}.nrep), ...
 	'linestyle', 'none', 'linewidth', 0.8, 'color', data_colors{1}, ...
 	'CapSize',capsize)
@@ -74,7 +93,7 @@ xlim(plot_range);
 grid on
 ylim([0 max_rate+5])
 ylabel('Avg. Rate (sp/s)')
-xlabel('Spectral Peak Freq. (Hz)')
+xlabel('Spectral Peak Freq. (kHz)')
 xlim([0.4 2.4])
 %title('Example Unit with Threshold')
 
@@ -83,12 +102,12 @@ plot(threshold_freq/1000, slope_rate, 'r', 'LineWidth',1.5)
 xline(threshold_freq(1)/1000, 'r')
 xline(threshold_freq(2)/1000, 'r')
 
-% Annotate
+% Annotate 
 msg = sprintf('Thresh. = %0.02f%%', threshold_percent);
 text(0.6, 0.95, msg, 'Units', 'normalized', ...
 	'VerticalAlignment', 'top', 'FontSize',legsize)
 
-%% Plot histogram
+%% Plot histogram 
 
 % Get data
 spls = [43, 63, 73, 83];
@@ -118,21 +137,16 @@ box off
 grid on
 
 % Percent <4% threshold
-percent = sum(thresholds<=4)/length(thresholds)*100;
+%percent = sum(thresholds<=4)/length(thresholds)*100;
 hleg = legend('Neural', 'Human', 'box', 'off');
 hleg.ItemTokenSize = [8,8];
 
 %% Plot scatter of thresholds vs CF
 
-% Get minimum thresholds
-% CFs_array = linspace(200, 10000, 100);
-% min_threshold = 35./CFs_array*100;
-
-% Set up figure
+% Set up figure 
 h(3) = subplot(2, 9, [7 8 9]);
 spls = [43, 63, 73, 83];
 is200 = tables.F0==200;
-isMTF = strcmp(tables.MTF, 'BE') | strcmp(tables.MTF, 'BS');
 
 for ibin = 2
 	isbin = tables.binmode == ibin;
@@ -145,8 +159,6 @@ for ibin = 2
 		% Data
 		CFs = tables.CF(index);
 		Qs = tables.Threshold(index);
-		MTFs = tables.MTF(index);
-		peaks = tables.Type(index);
 
 		% Add in units without thresholds
 		Qs(isnan(Qs)) = 50;
@@ -166,10 +178,7 @@ for ibin = 2
 		scatter(1200/1000, 4,scattersize, 'r', 'filled','markeredgecolor', 'k') %'filled')
 		yline(4, 'r')
 
-		% Plot labels
-		number = Qs;
-		number(isnan(number)) = [];
-		%title('Thresholds vs CF')
+		% Plot labels 
 		xlabel('CF (kHz)')
 		if ispl == 1
 			ylabel('Q')
@@ -191,19 +200,17 @@ for ibin = 2
 	end
 end
 
-%% Thresholds over level
+%% Thresholds over level  
 
-% Get minimum thresholds
+% Get minimum thresholds 
 % CFs_array = linspace(200, 10000, 100);
 % min_threshold = 35./CFs_array*100;
 
 
-% Set up figure
-data_colors = {'#000000', '#737373', '#bdbdbd'};
+% Set up figure 
 h(4) = subplot(2, 9, [10 11 12]);
 spls = [43, 63, 73, 83];
 is200 = tables.F0==200;
-isMTF = strcmp(tables.MTF, 'BE') | strcmp(tables.MTF, 'BS');
 all_thresholds = NaN(4, 163);
 for ibin = 2
 	isbin = tables.binmode == ibin;
@@ -214,10 +221,7 @@ for ibin = 2
 		index = islevel & isbin & is200; % & isMTF;
 
 		% Data
-		CFs = tables.CF(index);
 		thresh = tables.Threshold(index);
-		MTFs = tables.MTF(index);
-		peaks = tables.Type(index);
 
 		% Add in units without thresholds
 		thresh(isnan(thresh)) = 100;
@@ -225,7 +229,7 @@ for ibin = 2
 		thresh2(isoutlier(thresh2)) = [];
 
 		% Put into arrays
-
+		
 		if ispl == 4
 			all_thresholds(3,1:length(thresh)) = thresh;
 			hold on
@@ -250,7 +254,11 @@ yticks([0.2 0.5 1 2 5 10 20 50 70])
 yticklabels({'0.2', '0.5', '1', '2', '5', '10', '20', '>50'})
 box off
 
-% Kruskal Wallis for non normal data
+% ANOVA for log transformed data?
+% [p,tbl,stats] = anova1(all_thresholds');
+% results = multcompare(stats);
+
+% Kruskal Wallis for non normal data 
 % kruskalwallis(all_thresholds')
 % [p, tbl, stats] = kruskalwallis(all_thresholds', 1:4);
 % multcompare(stats, 'CType', 'dunn-sidak');
@@ -266,11 +274,10 @@ is200 = tables.F0 == 200;
 
 SPLs = [43, 63, 73, 83];
 qs = NaN(num_units, 4);
+CF_group = zeros(num_units, 1);
 for isesh = 1:num_units
-
 	putative = neurons{isesh};
 	isput = cellfun(@(s) strcmp(s, putative), tables.Putative);
-
 	for ispl = 1:4
 		ind = isput & isbin & is200 & tables.SPL==SPLs(ispl);
 		if any(ind)
@@ -280,18 +287,19 @@ for isesh = 1:num_units
 	end
 end
 
-% Get matrix of units with 43, 63, 83 dB
+% Get matrix of units with 43, 63, 83 dB 
 qs2 = qs(:,[1,2,4]);
 rows_with_nan = any(isnan(qs2),2);
 qs2(rows_with_nan,:) = [];
 x = [43, 63, 83];
 
 % Criteria using slope
+slopes = zeros(length(qs2), 1);
 for ii = 1:length(qs2)
 	y = qs2(ii, :)';
-	tbl = table(x', y, 'VariableNames', {'X', 'Q'});
-	mdl = fitlm(tbl, 'Q ~ X');
-	slopes(ii) = mdl.Coefficients.Estimate(2); % slope
+    tbl = table(x', y, 'VariableNames', {'X', 'Q'});
+    mdl = fitlm(tbl, 'Q ~ X');
+    slopes(ii) = mdl.Coefficients.Estimate(2); % slope
 end
 criteria = 0.03;
 same = slopes<criteria & slopes > -1*criteria;
@@ -319,7 +327,7 @@ for ii = 1:3
 	hold on
 	plot(spls, qs2(values,:)', 'color',color , 'LineWidth',0.8)
 	xticks(spls)
-
+	
 	xlim([37 89])
 	plot(spls, mean(qs2(values,:), 'omitnan'), 'k', 'LineWidth',linewidth)
 	plot(spls, median(qs2(values,:), 'omitnan'), ':k', 'LineWidth',linewidth)
@@ -342,6 +350,7 @@ for ii = 1:3
 	if ii == 2
 		hLeg = legend;
 		num_lines = size(hLeg.String,2);
+        leg = cell(num_lines, 1);
 		for iii = 1:num_lines
 			if iii==num_lines
 				leg{iii} = 'Mean';
@@ -371,7 +380,7 @@ end
 
 
 
-%% Arrange and annotate
+%% Arrange and annotate 
 
 left = linspace(0.1, 0.77, 3);
 width = 0.2;
@@ -400,9 +409,11 @@ annotation('textbox',[left(1) 0.45 0.0826 0.0385],'String',{'D'},...
 annotation('textbox',[left(2) 0.45 0.0826 0.0385],'String',{'E'},...
 	'FontWeight','bold','FontSize',labelsize,'EdgeColor','none');
 
-%% Save figure
+%% Save figure 
+
 if save_fig == 1
 	filename = 'fig8_plot_thresholds';
 	save_figure(filename)
 end
+
 end

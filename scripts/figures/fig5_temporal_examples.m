@@ -1,9 +1,33 @@
-function fig5_plot_temporal_examples(save_fig)
+function fig5_temporal_examples(save_fig)
+% FIG5_PLOT_TEMPORAL_EXAMPLES Generates Figure 5 illustrating temporal phase-locking patterns.
+%
+% PURPOSE:
+%   This function visualizes single-unit temporal dynamics across a variety of 
+%   auditory neurons. It constructs multi-panel period histogram heatmaps (pcolor) 
+%   mapping time-within-period against spectral peak frequencies, plots phase-locking 
+%   strength via Vector Strength (VS) profiles relative to characteristic frequency (CF), 
+%   and summarizes dataset distributions (Peak, Dip, Flat classifications) using a bar chart.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a complex 5x5 multi-panel heatmap and quantification plot. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - analyzeST()               : Analyzes synthetic timbre neural data structure
+%   - analyzeST_Temporal()      : Computes period histograms and temporal metrics
+%   - smooth_rates()            : Smooths physiological vector tracks relative to CF
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up (Original framework dated for 2025 manuscript)
 
 %% Load in spreadsheet
 
 [~, datapath, ~, ppi] = get_paths();
-spreadsheet_name = 'Data_Table.xlsx';
+spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), ...
 	'PreserveVariableNames',true);
 
@@ -11,17 +35,16 @@ sessions = readtable(fullfile(datapath, spreadsheet_name), ...
 
 figure('Position',[50,50,6.6*ppi,4.8*ppi])
 tiledlayout(4, 5, "TileSpacing","compact", 'TileIndexing','columnmajor')
+h = gobjects(20, 1);
 legsize = 6;
 fontsize = 7;
-titlesize = 8;
 labelsize = 13;
-linewidth = 1;
-scattersize = 12;
-capsize = 2;
 
 %%
 ind = [1, 6, 11, 16, 2, 7, 12, 17, 3, 8, 13, 18, 4, 9, 14, 19, 5, ...
 	10, 15, 20]+5;
+fpeaks_re_CF = cell(20, 1);
+VS = cell(20, 1);
 for ii = 1:20
 
 	switch ii
@@ -67,10 +90,9 @@ for ii = 1:20
 			putative = 'R27_TT2_P8_N05';
 	end
 	filename = sprintf('%s.mat', putative);
-	load(fullfile(datapath,'neural_data', filename)), 'data';
+	load(fullfile(datapath,'neural_data', filename), 'data');
 	index = find(cellfun(@(s) strcmp(putative, s), sessions.Putative_Units));
 	CF = sessions.CF(index);
-	MTF_shape = sessions.MTF{index};
 
 	%% Analysis
 
@@ -92,14 +114,8 @@ for ii = 1:20
 	%% Plot
 
 	% Plot as heatmap
-	num_fpeaks = length(data_ST.fpeaks);
-	max_rate = max(temporal.p_hist, [], 'all');
-	freq_values = round(param.fpeaks);
 	p_hist = temporal.p_hist;
-	edges = temporal.t_hist;
-	t_bin = edges(1:end-1) + diff(edges)/2; % Bin centers
 	t = linspace(0, 5, size(p_hist,2));
-
 	grayMap = [linspace(0, 1, 256)', linspace(0, 1, 256)',...
 		linspace(0, 1, 256)'];
 	grayMap = flipud(grayMap);
@@ -109,6 +125,20 @@ for ii = 1:20
 	set(hh, 'EdgeColor', 'none');
 	hold on
 	yline(CF/1000, 'r', 'LineWidth',2)
+
+    % Plot harmonics 
+    if ii == 5
+        response = 1.379;
+        xline(response, 'g')
+        harm2_period = 1/400*1000;
+        xline(response + harm2_period, 'g')
+    elseif ii == 13
+        response = 0.25;
+        xline(response, 'g')
+        harm4_period = 1/800*1000;
+        xline(response + harm4_period, 'g')
+    end
+
 	%colorbar;
 	%axis square;
 	colormap(grayMap);
@@ -119,8 +149,10 @@ for ii = 1:20
 		ylabel('                                Spectral Peak Freq. (Hz)')
 	end
 	xticks(0:5)
-	if ismember(ii, [4, 8, 12, 16, 20])
-		xlabel('Period (ms)')
+	if ismember(ii, 12)
+		xlabel('Time within Period (ms)')
+    elseif ismember(ii, [4, 8, 16, 20])
+        xticks(0:5)
 	else
 		xticklabels([])
 	end
@@ -171,7 +203,6 @@ spreadsheet_name = 'peak_picking_VS.xlsx';
 table = readtable(fullfile(datapath, spreadsheet_name));
 h(5) = subplot(5, 5, 5);
 spl = [43, 63, 73, 83];
-types = {'Flat', 'Peak', 'Dip'};
 isBin = table.binmode == 2;
 for ispl = 2
 	isSPL = table.SPL == spl(ispl);
@@ -180,7 +211,6 @@ for ispl = 2
 	num_dip = sum(cellfun(@(s) strcmp(s, 'Dip'), table.Type(index)));
 	num_peak = sum(cellfun(@(s) strcmp(s, 'Peak'), table.Type(index)));
 	num_flat = sum(cellfun(@(s) strcmp(s, 'Flat'), table.Type(index)));
-	all = sum([num_peak num_dip num_flat]);
 
 	percent_peak = num_peak;
 	percent_dip = num_dip;
@@ -234,8 +264,10 @@ annotation('textbox',[left(5) 0.75 0.0826 0.0385],'String',{'G'},...
 	'FontWeight','bold','FontSize',labelsize,'EdgeColor','none');
 
 %% Save figure 
+
 if save_fig == 1
-	filename = 'fig5_plot_temporal_examples';
+    filename = 'fig5_temporal_examples';
 	save_figure(filename)
 end
+
 end

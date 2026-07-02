@@ -1,6 +1,5 @@
 function [base, datapath, savepath, ppi] = get_paths()
 
-
 % ======================== PATH CONFIGURATION =========================
 
 % Set your local directory
@@ -8,7 +7,7 @@ function [base, datapath, savepath, ppi] = get_paths()
 
 % OR 
 directory = pwd;
-projectName = 'FritzingerCarney2025-Timbre';
+projectName = 'FritzingerCarney2026-Timbre';
 
 idx = strfind(directory, projectName);
 if ~isempty(idx)

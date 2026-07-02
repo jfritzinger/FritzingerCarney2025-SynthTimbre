@@ -1,17 +1,39 @@
 function fig3_methods_peak_quantification(save_fig)
-%% methods_peak_quantification 
+% FIG3_METHODS_PEAK_QUANTIFICATION Generates Figure 3 demonstrating feature classification.
+%
+% PURPOSE:
+%   This function visualizes the classification and quantification of neural response 
+%   profiles into "Peak", "Dip", or "Sloping" categories from real physiology data. 
+%   It plots z-scored firing rates against spectral peak frequencies, highlights the 
+%   Region of Interest (ROI), applies a peak-finding algorithm, and extracts metrics 
+%   like prominence windows and half-height bandwidths for manuscript methodology.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a formatted 3-panel comparative methodology plot. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - analyzeST()               : Analyzes synthetic timbre neural data structure
+%   - peakFinding()             : Algorithmic categorization of peaks, dips, and proms
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up
 
 %% Load in spreadsheet 
 
 [~, datapath, ~, ppi] = get_paths();
-spreadsheet_name = 'Data_Table.xlsx';
+spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
 
 
 %% Set up figure 
 
 figure('Position',[50,50,6*ppi,1.6*ppi])
-legsize = 6;
+h = gobjects(3, 1);
 fontsize = 7;
 titlesize = 8;
 labelsize = 13;
@@ -23,7 +45,6 @@ capsize = 2;
  
 examples = {'R25_TT3_P9_N01', 'R27_TT3_P1_N08', 'R29_TT1_P2_N04'};
 CF_color = [0.3 0.3 0.3];
-% Or R27_TT2_P8_N02 for peak
 
 for ineuron = 1:3
 
@@ -33,7 +54,7 @@ for ineuron = 1:3
 	load(fullfile(datapath,'neural_data', filename), 'data');
 	index = find(cellfun(@(s) strcmp(putative, s), sessions.Putative_Units));
 	CF = sessions.CF(index);
-
+    
 	% Analysis
 	param_ST = data(7, 2);
 	data_ST = analyzeST(param_ST, CF);
@@ -117,7 +138,8 @@ annotation('textbox',[left(3)-0.04 0.95 0.0826 0.0385],'String',{'C'},...
 %% Save figure 
 
 if save_fig == 1
-	filename = 'fig3_methods_peak_quantification';
+    filename = 'fig3_methods_peak_quantification';
 	save_figure(filename)
 end
+
 end

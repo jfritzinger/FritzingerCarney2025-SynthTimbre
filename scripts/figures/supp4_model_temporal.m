@@ -1,15 +1,33 @@
-function supp2_model_temporal(save_fig)
-
-%% Set up figure
-
-[base, datapath, savepath, ppi] = get_paths();
-figure('Position',[50,50,3.33*ppi,4*ppi])
-legsize = 6;
-fontsize = 7;
-titlesize = 8;
-labelsize = 13;
-linewidth = 1;
-
+function supp4_model_temporal(save_fig)
+% FIG_S4_MODEL_TEMPORAL Generates Supplementary Figure S3 demonstrating model temporal period histograms.
+%
+% PURPOSE:
+%   This function simulates auditory nerve and inferior colliculus responses to synthetic 
+%   timbre tokens to analyze the sub-millisecond temporal period profiles generated across 
+%   three standard computational configurations: Same-Frequency Inhibition-Excitation (SFIE), 
+%   Broad/Lateral Inhibition, and traditional front-end Energy frameworks. It constructs 
+%   steady-state matrix heatmaps illustrating cycle-by-cycle response phase-locking 
+%   relative to the stimulus fundamental frequency (200 Hz) across both Band-Enhanced (BE) 
+%   and Band-Suppressed (BS) sub-types.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a 3x2 multi-panel temporal heatmap simulation layout. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - generate_ST()             : Synthesizes synthetic timbre acoustic sound waves
+%   - modelAN()                 : Simulates auditory nerve fiber spike trains
+%   - wrapperIC()               : Computes inferior colliculus neural responses via the SFIE model
+%   - modelLateralAN()          : Evaluates multi-channel lateral auditory nerve arrays
+%   - modelLateralSFIE()        : Implements off-frequency inhibitory matrix interaction profiles
+%   - gamma_filt()              : Passes waveforms through a baseline Gammatone auditory filter bank
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up (Original framework dated for 2025 manuscript)
 
 %% Parameters
 CF = 1200;
@@ -64,7 +82,7 @@ for imodel = 1:3
 		SFIE = wrapperIC(AN_HSR.an_sout, params, model_params); % SFIE output
 
 	elseif imodel == 2 % Broad inhibition
-
+        latinh = cell(1, 2);
 		for iMTF = 1:2
 			if iMTF == 1
 				S = 0.4; % BE
@@ -110,8 +128,6 @@ for imodel = 1:3
 		gamma_param.srate = params.Fs;
 		gamma_param.fc = CF;
 		stimulus = [params.stim zeros(size(params.stim,1),0.1*params.Fs)];
-		tvals = (1:length(stimulus))/params.Fs;
-		gamma_IF_reg = zeros(1,length(tvals));
 		impaired = 0; % 0 = not impaired; 1 = 'impaired'
 		pin_gamma = zeros(size(stimulus, 1), params.Fs*params.dur+0.1*params.Fs);
 
@@ -127,6 +143,13 @@ end
 
 
 %% Create heatmaps for BE and BS
+
+[~, ~, ~, ppi] = get_paths();
+figure('Position',[50,50,3.33*ppi,4*ppi])
+h = gobjects(5, 1);
+fontsize = 7;
+titlesize = 8;
+labelsize = 13;
 
 index = [1, 2; 3, 4; 5, 6];
 for imodel = 1:3
@@ -161,12 +184,11 @@ for imodel = 1:3
 		max_rate = max(spike_hist, [], 'all')/2;
 		onsetwin = 0.05;
 		hold on
+        avg = zeros(num_fpeaks, 500);
 		for j = 1:num_fpeaks
 
 			% Plot PSTHs
 			spike_wo_onset = spike_hist(j, onsetwin*fs:params.dur*fs-1);
-			t = linspace(0.05, 0.3, fs*0.25);
-
 			freq = 200; % Stimulus frequency in Hz
 			period = 1 / freq; % Period in ms
 			samples_per_period = fs*period;
@@ -179,6 +201,7 @@ for imodel = 1:3
 		grayMap = [linspace(0, 1, 256)', linspace(0, 1, 256)', linspace(0, 1, 256)'];
 		grayMap = flipud(grayMap);
 
+
 		hh = pcolor(t_period, fpeaks./1000, avg);
 		set(hh, 'EdgeColor', 'none');
 		hold on
@@ -189,6 +212,7 @@ for imodel = 1:3
 		set(gca, 'YScale', 'log')
 		ylim([fpeaks(1) fpeaks(end)]/1000)
 		yticks([0.1 0.2 0.5 1 2 5 10])
+		xlim([0 75])
 		if ii == 1
 			ylabel('CFs (kHz)')
 		end
@@ -203,15 +227,19 @@ for imodel = 1:3
 			title('No MTF')
 		end
 		set(gca, 'fontsize',fontsize)
+		if imodel == 3 || ii == 2
+			c = colorbar;
+			c.Label.String = 'Rate (sp/s)';
+		end
 	end
 end
 
 %% Arrange and annotate figure 
 
-left = [0.18 0.62];
+left = [0.18 0.55];
 bottom = linspace(0.08, 0.73, 3);
 height = 0.22;
-width = 0.35;
+width = 0.3;
 set(h(1), 'Position', [left(1) bottom(3) width height])
 set(h(2), 'Position', [left(2) bottom(3) width height])
 set(h(3), 'Position', [left(1) bottom(2) width height])
@@ -239,8 +267,10 @@ annotation('textbox',[0.1 0.13 0.10 0.053],'String',{'Energy'},...
 
 
 %% Save figure
+
 if save_fig == 1
-	filename = 'figS2_model_temporal';
+	filename = 'fig_s4_model_temporal';
 	save_figure(filename)
 end
+
 end

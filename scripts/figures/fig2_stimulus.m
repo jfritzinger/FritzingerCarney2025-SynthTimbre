@@ -1,10 +1,28 @@
 function fig2_stimulus(save_fig)
-% Synthetic timbre stimulus, sliding in the frequency spectrum
-% J. Fritzinger, 8/27/24
+% FIG2_STIMULUS Generates Figure 2 illustrating the methods stimulus setup.
+%
+% PURPOSE:
+%   This function visualizes a synthetic timbre stimulus containing a shifting 
+%   triangular spectral envelope. It demonstrates a fixed target frequency peak 
+%   at a nominal characteristic frequency (CF) alongside alternative peak-shifted 
+%   variants, using arrows to illustrate spectral movement for manuscript methods.
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a stylized spectral figure. Saves to disk if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 8/27/24 (Prepared for repository publication)
 
 %% Set up figure
 
-[~, ~, savepath, ppi] = get_paths();
+[~, ~, ~, ppi] = get_paths();
 figure('Position',[50,50,3.2*ppi,1.3*ppi]);
 h(1) = subplot(1, 1, 1);
 colors = {'#000000', '#bdbdbd'};
@@ -33,7 +51,6 @@ nstim = length(params.fpeaks);
 % Create the Stimulus Gating function
 fs = params.Fs;
 npts = floor(params.dur*fs);
-gate = tukeywin(npts,2*params.ramp_dur/params.dur); %raised cosine ramps
 
 % Generate stimuli for all presentations
 params.stim = zeros(nstim*params.mnrep, npts);
@@ -72,6 +89,8 @@ for istim = 1:nstim
 	num_harmonics = length(harmonics);
 
 	% Make the stimulus for this_fpeak
+    level = zeros(num_harmonics, 1);
+    shifted_harms = zeros(num_harmonics, 1);
 	shift = this_fpeak - params.Fc; % a negative values for low fpeaks; 0 at center; positive for high fpeaks
 	for iharm = 1:num_harmonics
 		comp_freq = (harmonics(iharm) + shift);
@@ -138,9 +157,10 @@ annotation('arrow',[0.39 0.23],[0.84 0.84], 'linewidth', linewidth, ...
 annotation('textbox',[0.385 0.0198 0.0625 0.106],'String',{'CF'},...
 	'FontSize',fontsize,'FitBoxToText','off','EdgeColor','none', 'Color',CF_color);
 
-%% Save figure
+%% Save figure 
+
 if save_fig == 1
-	filename = 'fig2_stimulus';
+    filename = 'fig2_stimulus';
 	save_figure(filename)
 end
 

@@ -17,8 +17,6 @@ function generate_figs(fig_num)
 %       Update base paths in getPathsWBTIN() or modify addpath commands
 %       below to match your local directory structure.
 
-
-
 % ======================== PATH CONFIGURATION =========================
 
 % Modify get_paths() to set your local directories
@@ -35,7 +33,6 @@ addpath(fullfile(base, 'scripts', 'UR_EAR_2022a', 'source'), '-end');
 addpath(fullfile(base, 'scripts', 'DoG-model'), '-end'); 
 addpath(fullfile(base, 'scripts', 'model-energy'), '-end'); 
 addpath(fullfile(base, 'scripts', 'model-lat-inh'), '-end'); 
-% addpath(fullfile(base, 'scripts', 'analysis'), '-end'); 
 
 % =====================================================================
 
@@ -55,42 +52,44 @@ else
 end
 
 % Plot manuscript figures
-save_fig = 1;
+save_fig = 0;
 switch fig_str
 	case 'Fig. 1' 
-		fig1_hypothesis(save_fig)
-	case 'Fig. 2'
-		fig2_stimulus(save_fig)
+		fig1_hypothesis_SFIE(save_fig) % Good
+	case 'Fig. 2' 
+		fig2_stimulus(save_fig) % Good
 	case 'Fig. 3' 
-		fig3_methods_peak_quantification(save_fig)
+		fig3_methods_peak_quantification(save_fig) % Good
 	case 'Fig. 4' 
-		fig4_single_unit_examples(save_fig)
+		fig4_rate_examples(save_fig) % Good
 	case 'Fig. 5' 
-		fig5_plot_temporal_examples(save_fig)
+		fig5_temporal_examples(save_fig) % Good
 	case 'Fig. 6' 
-		fig6_plot_population(save_fig)
+		fig6_population_analysis(save_fig) % Good
 	case 'Fig. 7' 
-		fig7_changes_over_level(save_fig)
+		fig7_changes_over_level(save_fig) % Good
 	case 'Fig. 8' 
-		fig8_plot_thresholds(save_fig)
+		fig8_thresholds(save_fig) % Good 
 	case 'Fig. 9' 
-		fig9_model_examples(save_fig)
+		fig9_dog_analysis(save_fig) % Good
 	case 'Fig. 10' 
-		fig10_model_Q_comparisons(save_fig)
+		fig10_model_examples(save_fig) % Good
 	case 'Fig. 11' 
-		fig11_dog_analysis_plots(save_fig)
+		fig11_model_Q_comparisons(save_fig) % Good
 	case 'Fig. S1' 
-		supp1_data_distribution(save_fig)
+		supp1_data_distribution(save_fig) % Good
 	case 'Fig. S2' 
-		supp2_model_temporal(save_fig)
+		supp2_temporal_harms(save_fig) % Good
 	case 'Fig. S3'
-		supp3_time_lapse_results(save_fig) 
+		supp3_temporal_thresholds(save_fig) % Good
+    case 'Fig. S4'
+        supp4_model_temporal(save_fig) % Good
+    case 'Fig. S5'
+        supp5_time_lapse(save_fig) % Good
 	otherwise
 		error(['Invalid figure identifier: %s \n' ...
 			'Supported formats: 1-11 or ''Fig. 1''-''Fig. 11''\n' ...
 			'Supplementary: ''Fig. S1''-''Fig. S6'''], fig_str)
 end
-
-
 
 end

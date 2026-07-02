@@ -1,17 +1,41 @@
-function supp3_time_lapse_results(save_fig)
+function supp5_time_lapse(save_fig)
+% FIG_S4_TIME_LAPSE_RESULTS Generates Supplementary Figure S4 evaluating receptive field temporal changes.
+%
+% PURPOSE:
+%   This function quantifies temporal modifications in neural frequency resolution over time
+%   by partitioning responses into transient (50–150 ms) versus steady-state (200–300 ms) windows. 
+%   It traces single-unit firing rate tracking examples undergoing sharpening, broadening, or 
+%   stable tuning configurations, and contextualizes these trajectories against population metrics 
+%   categorized by stimulus pressure level and baseline classification shape (BE, BS, Hybrid, Flat).
+%
+% INPUTS:
+%   save_fig - Binary flag (1 = save figure to disk, 0 = display only)
+%
+% OUTPUTS:
+%   Generates a 3x3 multi-panel time-lapse tracking summary. Saves if save_fig = 1.
+%
+% DEPENDENCIES / EXTERNAL FUNCTIONS CALLED:
+%   - getPaths()                : Custom path configuration script
+%   - analyzeRM()               : Analyzes Response Area / Rate-Intensity Matrix data
+%   - analyzeST()               : Analyzes synthetic timbre neural data structure
+%   - analyzeSTWindow()         : Sections spikes into discrete temporal analysis bins
+%   - peakFinding()             : Extracts bandwidth parameters and centers from rate profiles
+%   - save_figure()             : Custom figure export script
+%
+% AUTHOR: J. Fritzinger
+% UPDATED: 2026 Repository Clean-up (Original framework dated for 2025 manuscript)
 
 %% Load in spreadsheet
 
 [~, datapath, ~, ppi] = get_paths();
 tables = readtable(fullfile(datapath,"time_lapse.xlsx"));
-spreadsheet_name = 'Data_Table.xlsx';
+spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
-
 
 %% Set up figure
 
 figure('position', [519,299,9*ppi,7*ppi])
-%tiledlayout(3, 3)
+h = gobjects(9, 1);
 fontsize = 12;
 legsize = 8;
 labelsize = 24;
@@ -34,14 +58,9 @@ for ineuron = 1:3
 
 	% Load in data
 	filename = sprintf('%s.mat', putative);
-	load(fullfile(datapath,'neural_data', filename)), 'data';
+	load(fullfile(datapath,'neural_data', filename), 'data');
 	index = find(cellfun(@(s) strcmp(putative, s), sessions.Putative_Units));
 	CF = sessions.CF(index);
-
-	% RM to get spont
-	params_RM = data{2, 2};
-	data_RM = analyzeRM(params_RM);
-	spont = data_RM.spont;
 
 	param_ST = data(5+ispl, 2);
 	data_ST = analyzeST(param_ST, CF);
@@ -90,7 +109,7 @@ for ineuron = 1:3
 end
 
 
-%% How many change
+%% How many change 
 
 linewidth = 1;
 
@@ -140,54 +159,8 @@ for ii = 1:3
 end
 
 
-%% Analyze and plot
+%% Analyze and plot 
 
-% spls = [43, 63, 73, 83];
-% %isMTF = strcmp(tables.MTF, 'BE') | strcmp(tables.MTF, 'BS');
-% for iwin = 2
-% 	isbin = tables.binmode == iwin;
-% 	for ispl = 2
-%
-% 		% Get data
-% 		islevel = tables.SPL == spls(ispl);
-% 		index = islevel & isbin; % & isMTF;
-%
-% 		% Data
-% 		CFs = tables.CF(index);
-% 		Q1 = tables.Q1(index);
-% 		Q2 = tables.Q2(index);
-% 		MTFs = tables.MTF(index);
-%
-% 		% Plot
-% 		h(3) = subplot(3, 3, 3);
-% 		%gscatter(CFs/1000, Qs, MTFs, 'filled')
-% 		scatter(Q1, Q2, 'filled', 'MarkerEdgeColor','k')
-% 		hold on
-% 		plot([0,25], [0,25], 'k')
-%
-% 		% Fit linear regression line
-% 		mdl = fitlm(Q1, Q2);
-% 		x = 0.3:0.5:30;
-% 		p(1) = mdl.Coefficients.Estimate(2,1);
-% 		p(2) = mdl.Coefficients.Estimate(1,1);
-% 		p(3) = mdl.Coefficients.pValue(2);
-% 		p(4) = mdl.Rsquared.Ordinary;
-% 		mdlfit = p(1)*x+p(2);
-% 		plot(x, mdlfit, 'r');
-% 		legend('Data', 'Unity Line', 'Regression', 'Location','best',...
-% 			'fontsize', legsize)
-%
-% 		% Plot labels
-% 		xlabel('Q (50-150 ms)')
-% 		ylabel('Q (200-300 ms)')
-% 		ylim([0 25])
-% 		xlim([0 25])
-% 		grid on
-% 		set(gca, 'fontsize', fontsize)
-% 	end
-% end
-
-linewidth = 1;
 islevel = tables.SPL == 63;
 CFs = tables.CF(islevel);
 isBE = strcmp(tables.MTF(islevel), 'BE');
@@ -200,11 +173,6 @@ isBE(rows_with_nan,:) = [];
 isBS(rows_with_nan,:) = [];
 
 diff_Q = qs2(:,2) - qs2(:,1);
-criteria = 1;
-same = diff_Q<criteria & diff_Q > -1*diff_Q;
-decrease = diff_Q<-1*criteria;
-increase = diff_Q>criteria;
-win = 1:2;
 
 h(3) = subplot(3, 3, 3);
 scatter(CFs(isBE)/1000, diff_Q(isBE), 18, 'filled', 'MarkerEdgeColor','k')
@@ -219,11 +187,13 @@ xticks([0.2 0.5 1 2 5 10])
 ylim([-6.2 10])
 grid on
 
-%% Q changes with level & window
-clear Q
+%% Q changes with level & window 
+clear Q 
 
 spls = [43, 63, 73, 83];
 isbin = tables.binmode == 2; % | tables.binmode == 1;
+Q = zeros(2, 4);
+Q_sem = zeros(2, 4);
 for ispl = 1:4
 
 	% Get data
@@ -231,7 +201,6 @@ for ispl = 1:4
 	index = islevel & isbin;
 
 	% Data
-	CFs = tables.CF(index);
 	Q1 = tables.Q1(index);
 	Q2 = tables.Q2(index);
 	Q(:, ispl) = [mean(Q1, 'omitnan') mean(Q2, 'omitnan')];
@@ -250,13 +219,14 @@ set(gca, 'fontsize', fontsize)
 grid on
 box off
 
-%% Q changes with MTF & window
+%% Q changes with MTF & window 
 
-spls = [43, 63, 73, 83];
 isBE = strcmp(tables.MTF, 'BE');
 isBS = strcmp(tables.MTF, 'BS');
 isH = contains(tables.MTF, 'H');
 isF = strcmp(tables.MTF, 'F');
+Q_all2 = zeros(2, 4);
+Q_sem2 = zeros(2, 4);
 for iwin = 1:2
 
 	% Get data
@@ -289,7 +259,7 @@ legend('50-150 ms','200-300 ms', 'Location','best')
 set(gca, 'fontsize', fontsize)
 grid on
 
-%% Arrange plots
+%% Arrange plots 
 
 left = [0.1 0.4 0.75];
 bottom = [0.75 0.41 0.07];
@@ -313,7 +283,7 @@ annotation('textbox',[0.29 0.945-x 0.15 0.051],'String',{'No Change'},...
 annotation('textbox',[0.29 0.945-2*x 0.15 0.051],'String',{'Broadening'},...
 	'FontWeight','bold','FontSize',titlesize,'EdgeColor','none');
 
-% Labels
+% Labels 
 labels = {'A', 'B', 'C'};
 labels2 = {'D', 'E', 'F'};
 labelbottom = fliplr(linspace(0.28, 0.96, 3));
@@ -326,10 +296,11 @@ for ii = 1:3
 		'EdgeColor','none');
 end
 
-%% Save figure
+%% Save figure 
 
 if save_fig == 1
-	filename = 'figS3_time_lapse_results';
+	filename = 'fig_s5_time_lapse';
 	save_figure(filename)
 end
+
 end

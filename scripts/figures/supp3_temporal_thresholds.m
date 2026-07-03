@@ -24,8 +24,8 @@ function supp3_temporal_thresholds(save_fig)
 %% Load in data 
 
 [~, datapath, ~, ppi] = get_paths();
-tables_VS = readtable(fullfile(datapath, "peak_picking_w_thresholds_VS.xlsx"));
-tables = readtable(fullfile(datapath, "peak_picking_w_thresholds.xlsx"));
+tables_VS = readtable(fullfile(datapath, "st_response_metrics_VS.xlsx"));
+tables = readtable(fullfile(datapath, "st_response_metrics_rate.xlsx"));
 
 %% Set up figure 
 figure('Position',[50,50,4*ppi,4*ppi])
@@ -146,7 +146,7 @@ end
 
 %% 
 
-tables_RIS = readtable(fullfile(datapath, "peak_picking_w_thresholds_RIS.xlsx"));
+tables_RIS = readtable(fullfile(datapath, "st_response_metrics_RIS.xlsx"));
 
 % Set up figure 
 subplot(2, 2, 3);
@@ -185,7 +185,7 @@ for ibin = 2
 		set(gca, 'fontsize', fontsize)
 		set(gca, 'XScale', 'log')
 		set(gca, 'YScale', 'log')
-		ylabel('Threshold from VS (%)')
+		ylabel('Threshold from RIS (%)')
 		xticks([0 200 500 1000 2000 5000 10000]/1000)
 		yticks([0.2 0.5 1 2 5 10 20 50 100])
 		yticklabels({'0.2', '0.5', '1', '2', '5', '10', '20', '50', '>100'})
@@ -236,7 +236,7 @@ for ibin = 2
 		set(gca, 'fontsize', fontsize)
 		set(gca, 'XScale', 'log')
 		set(gca, 'YScale', 'log')
-		ylabel('Threshold from VS (%)')
+		ylabel('Threshold from RIS (%)')
 		xticks([0.2 0.5 1 2 5 10 20 50 70])
 		yticks([0.2 0.5 1 2 5 10 20 50 70])
 		yticklabels({'0.2', '0.5', '1', '2', '5', '10', '20', '>50'})

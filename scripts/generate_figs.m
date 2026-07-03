@@ -23,16 +23,7 @@ function generate_figs(fig_num)
 [base, ~, ~, ~] = get_paths();
 
 % Add helper functions to path
-addpath(fullfile(base, 'scripts'), '-end')
-addpath(fullfile(base, 'scripts', 'figures'), '-end')
-addpath(fullfile(base, 'scripts', 'helper-functions'), '-end')
-addpath(fullfile(base, 'scripts', 'stim-generation'), '-end')
-addpath(fullfile(base, 'scripts', 'model-SFIE'), '-end'); 
-addpath(fullfile(base, 'scripts', 'UR_EAR_2022a'), '-end'); 
-addpath(fullfile(base, 'scripts', 'UR_EAR_2022a', 'source'), '-end'); 
-addpath(fullfile(base, 'scripts', 'DoG-model'), '-end'); 
-addpath(fullfile(base, 'scripts', 'model-energy'), '-end'); 
-addpath(fullfile(base, 'scripts', 'model-lat-inh'), '-end'); 
+addpath(genpath(fullfile(base, 'scripts')), '-end')
 
 % =====================================================================
 

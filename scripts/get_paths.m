@@ -22,7 +22,7 @@ end
 
 % Basic paths for loading data and saving data
 datapath = fullfile(base, 'data');
-savepath = fullfile(base, 'figures');
+savepath = fullfile(base, 'data');
 
 % Setting figure sizes and font 
 ppi = get(0, 'ScreenPixelsPerInch');

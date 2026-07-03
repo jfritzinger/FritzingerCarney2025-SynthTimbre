@@ -26,7 +26,7 @@ function fig6_population_analysis(save_fig)
 
 %% Setup parameters and data loading
 [~, datapath, ~, ppi] = get_paths(); 
-spreadsheet_name = 'peak_picking.xlsx';
+spreadsheet_name = 'st_response_metrics_rate.xlsx';
 table_data = readtable(fullfile(datapath, spreadsheet_name));
 
 figure('position', [50, 50, 3.2*ppi, 7.5*ppi])
@@ -205,7 +205,8 @@ set(gca, 'fontsize', fontsize)
 box off
 
 %% Q-factor metrics across sub-regimes
-tables = readtable(fullfile(datapath, "LMM", "peak_picking_excludeflat.xlsx"));
+
+tables = readtable(fullfile(datapath, "LMM", "st_response_metrics_rate_excludeflat.xlsx"));
 h(8) = subplot(5, 3, 9);
 is200 = tables.F0 == 200;
 isBE = strcmp(tables.MTF, 'BE');

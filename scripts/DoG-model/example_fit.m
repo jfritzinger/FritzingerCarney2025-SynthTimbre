@@ -1,159 +1,160 @@
-%% fit_gaussian_vs_dog
-clear
+%% Example: Fitting Gaussian vs. Difference-of-Gaussians (DoG) Models
+% This script demonstrates how to load neural data, extract spontaneous and
+% driven firing rates from Synthetic Timbre (ST) stimuli, fit receptive field
+% models (Gaussian vs. DoG), and visualize the resulting fits and tuning kernels.
 
-%% Load in spreadsheet 
+%% =========================================================================
+% 1. CONFIGURATION & CONSTANTS
+% =========================================================================
+LINEWIDTH = 1.5;
+FS_STIM   = 100000;  % Stimulus sampling frequency (Hz)
+N_REPS    = 5;       % Number of multi-starts for fmincon optimizations
 
-[base, ~, ~, ~] = getPaths();
-sheetpath = 'data/2025-manuscript/data-cleaning';
+% Example Unit Selection (Uncomment the unit you want to analyze)
+putative_unit = 'R29_TT4_P5_N02'; 
+% putative_unit = 'R24_TT2_P13_N02';
+% putative_unit = 'R25_TT3_P9_N01';
+% putative_unit = 'R27_TT3_P8_N01';
+
+%% =========================================================================
+% 2. LOAD DIRECTORIES & METADATA
+% =========================================================================
+[~, datapath, ~, ~] = get_paths();
 spreadsheet_name = 'PutativeTable.xlsx';
-sessions = readtable(fullfile(base, sheetpath, spreadsheet_name), 'PreserveVariableNames',true);
 
+% Load master spreadsheet containing unit details (e.g., CF)
+sessions = readtable(fullfile(datapath, spreadsheet_name), ...
+                     'PreserveVariableNames', true);
 
-%% Load in data and plot
-linewidth = 1.5;
+% Find rows matching the target unit and extract its Characteristic Frequency (CF)
+unit_idx = find(cellfun(@(s) strcmp(putative_unit, s), sessions.Putative_Units));
+if isempty(unit_idx)
+    error('Unit %s not found in the master spreadsheet.', putative_unit);
+end
+CF = sessions.CF(unit_idx);
 
-% Load in data
-% Example: R24_TT2_P13_N02, CF = 1150Hz, BS
-putative = 'R29_TT4_P5_N02'; 
-%putative = 'R24_TT2_P13_N02';
-%putative = 'R25_TT3_P9_N01';
-%putative = 'R27_TT3_P8_N01';
+% Load the specific neural data file
+mat_filename = sprintf('%s.mat', putative_unit);
+load(fullfile(datapath, 'neural_data', mat_filename), 'data');
 
-[base, datapath, savepath, ppi] = getPaths();
-filename = sprintf('%s.mat', putative);
-load(fullfile(datapath,'neural_data', filename)), 'data';
-index = find(cellfun(@(s) strcmp(putative, s), sessions.Putative_Units));
-CF = sessions.CF(index);
-
-% RM to get spont
+%% =========================================================================
+% 3. EXTRACT PHYSIOLOGICAL RESPONSES (Spont & Driven Rates)
+% =========================================================================
+% Extract spontaneous activity from Rate-Intensity Function / Response Map (RM)
 params_RM = data{2, 2};
-data_RM = analyzeRM(params_RM);
-spont = data_RM.spont;
+data_RM   = analyzeRM(params_RM);
+spont_rate = data_RM.spont;
 
-% Synthetic timbre analysis
-params = data(7, 2);
-params = params(~cellfun(@isempty, params));
-data_ST  = analyzeST(params, CF);
-data_ST = data_ST{1};
-rate = data_ST.rate;
-rate_std = data_ST.rate_std;
-fpeaks = data_ST.fpeaks;
-rate_sm = data_ST.rates_sm;
+% Extract Synthetic Timbre (ST) driven firing rates
+params_ST = data(7, 2);
+params_ST = params_ST(~cellfun(@isempty, params_ST)); % Filter out empty cells
+data_ST   = analyzeST(params_ST, CF);
+data_ST   = data_ST{1};
 
+% Assign extracted target vectors
+observed_rate = data_ST.rate;
+rate_std      = data_ST.rate_std;
+fpeaks        = data_ST.fpeaks;
 
-%% Recreate stimulus (1 rep) 
+%% =========================================================================
+% 4. RECREATE STIMULUS (Single Representation for Modeling)
+% =========================================================================
+params_ST{1}.Fs       = FS_STIM;
+params_ST{1}.physio   = 1;
+params_ST{1}.mnrep    = 1;
+params_ST{1}.dur      = 0.3;
+params_ST{1}          = generate_ST(params_ST{1});
+params_ST{1}.num_stim = size(params_ST{1}.stim, 1);
 
-% Generate stimulus 
-params{1}.Fs = 100000;
-params{1}.physio = 1;
-params{1}.mnrep = 1;
-params{1}.dur = 0.3;
-params{1} = generate_ST(params{1});
-params{1}.num_stim = size(params{1}.stim, 1);
+stim_matrix = params_ST{1}.stim;
+num_stim    = size(stim_matrix, 1);
 
+%% =========================================================================
+% 5. OPTIMIZATION / MODEL FITTING via fmincon
+% =========================================================================
+fprintf('Running fmincon optimizations for %s...\n', putative_unit);
 
-%% fmincon
+% Fit standard 5-parameter Difference-of-Gaussians model
+num_dog_params = 5;
+dog_params = fit_dog_model(N_REPS, CF, FS_STIM, stim_matrix, observed_rate, spont_rate, num_dog_params);
 
-Fs = 100000;
-observed_rate = rate;
-r0 = spont;
-stim = params{1}.stim;
+% Fit Gaussian model
+gauss_params = fit_gaussian_model(N_REPS, CF, FS_STIM, stim_matrix, observed_rate, spont_rate);
 
-nrep = 5;
-num_params = 5;
-dog_params = fit_dog_model(nrep, CF, Fs, stim, observed_rate, r0, num_params);
+% Optional: Fit 6-parameter DoG model
+% dog_params6 = fit_dog_model_6param(N_REPS, CF, FS_STIM, stim_matrix, observed_rate, spont_rate);
 
-% nrep = 5;
-% num_params = 6;
-% dog_params6 = fit_dog_model_6param(nrep, CF, Fs, stim, observed_rate, r0);
+%% =========================================================================
+% 6. MODEL PREDICTIONS & STATS EVALUATION
+% =========================================================================
+f_axis = linspace(0, FS_STIM/2, 100000); % Frequency array for kernel generation
 
-nrep = 5;
-gauss_params = fit_gaussian_model(nrep, CF, Fs, stim, observed_rate, r0);
-
-
-%% Plot results 
-
-% Plot data 
-figure('Position',[76,482,1062,435])
-tiledlayout(1, 2)
-nexttile
-hold on
-errorbar(fpeaks./1000, rate, rate_std/sqrt(params{1}.nrep), ...
-	 'linewidth', linewidth, 'color', 'k')
-xline(CF/1000, '--', 'Color', [0.4 0.4 0.4], 'linewidth', linewidth); % Add CF line
-yline(spont, 'color', [0.5 0.5 0.5], LineWidth=linewidth)
-
-% Plot gaussian
-f = linspace(0, Fs/2, 100000);
-nstim = size(stim, 1);
-gaus_predicted = zeros(nstim, 1);
-for i = 1:nstim
-	W = gaussian_model(f, gauss_params);
-	gaus_predicted(i) = compute_firing_rate(stim(i, :), Fs, W, f, r0);
+% Predict Firing Rates: Gaussian Model
+gauss_predicted = zeros(num_stim, 1);
+fc = 10^gauss_params(1);
+sigma = 10^gauss_params(2);
+g = gauss_params(3);
+W_gauss = gaussian_model(f_axis, fc, sigma, g); % Generate filter kernel
+for i = 1:num_stim
+    gauss_predicted(i) = compute_firing_rate(stim_matrix(i, :), FS_STIM, W_gauss, f_axis, spont_rate);
 end
-plot(fpeaks./1000, gaus_predicted, 'r', 'linewidth', 3)
-gaussian_adj_r_squared = calculate_adj_r_squared(observed_rate,...
-	gaus_predicted, 3);
-gaus_msg = sprintf('Gaussian, R^2=%0.02f', gaussian_adj_r_squared);
+gauss_r2 = calculate_adj_r_squared(observed_rate, gauss_predicted, 3);
+gauss_legend_str = sprintf('Gaussian, Adj. R^2 = %0.02f', gauss_r2);
 
-% Plot DoG
-f = linspace(0, Fs/2, 100000);
-nstim = size(stim, 1);
-dog_predicted = zeros(nstim, 1);
-W = dog_model(f, dog_params);
-for i = 1:nstim
-	dog_predicted(i) = compute_firing_rate(stim(i, :), Fs, W, f, r0);
+% Predict Firing Rates: DoG Model (5-param)
+dog_predicted = zeros(num_stim, 1);
+W_dog = dog_model(f_axis, dog_params); % Generate filter kernel
+for i = 1:num_stim
+    dog_predicted(i) = compute_firing_rate(stim_matrix(i, :), FS_STIM, W_dog, f_axis, spont_rate);
 end
-plot(fpeaks./1000, dog_predicted, 'g', 'linewidth', linewidth)
-dog_adj_r_squared = calculate_adj_r_squared(observed_rate,...
-	dog_predicted, 5);
-dog_msg = sprintf('DoG, R^2=%0.02f', dog_adj_r_squared);
+dog_r2 = calculate_adj_r_squared(observed_rate, dog_predicted, 5);
+dog_legend_str = sprintf('DoG, Adj. R^2 = %0.02f', dog_r2);
 
-% % Plot DoG
-% f = linspace(0, Fs/2, 100000);
-% nstim = size(stim, 1);
-% dog_predicted6 = zeros(nstim, 1);
-% W = dog_model(f, dog_params6);
-% for i = 1:nstim
-% 	dog_predicted6(i) = compute_firing_rate(stim(i, :), Fs, W, f, r0);
-% end
-% plot(fpeaks./1000, dog_predicted6, 'b', 'linewidth', linewidth)
-% dog_adj_r_squared = calculate_adj_r_squared(observed_rate,...
-% 	dog_predicted6, 5);
-% dog_msg2 = sprintf('DoG 6 param, R^2=%0.02f', dog_adj_r_squared);
+%% =========================================================================
+% 7. VISUALIZATION
+% =========================================================================
+figure('Position', [76, 482, 1062, 435])
+tiledlayout(1, 2, 'TileSpacing', 'compact')
 
-
-% Figure params
-set(gca, 'FontSize',12)
-legend('', '', '', gaus_msg, dog_msg, 'Location','best')
-title('Gaussian vs DoG Fits')
-ylabel('Avg. Rate (sp/s)')
-xlabel('Spectral Peak Freq. (kHz)')
-
-% Plot kernels 
-
-% Plot DoG Parameters
+% --- Tile 1: Firing Rate Profiles vs Model Predictions ---
 nexttile
-hold on
+hold on;
 
-Fs = 100000;
-f = linspace(0, Fs/2, 100000);
-W = gaussian_model(f, gauss_params);
-plot(f/1000,W, 'color', 'r', 'LineWidth',3)
+% Plot raw physiological data with Standard Error
+errorbar(fpeaks./1000, observed_rate, rate_std/sqrt(params_ST{1}.nrep), ...
+         'LineWidth', LINEWIDTH, 'Color', 'k', 'DisplayName', 'Observed Data');
 
-W2 = dog_model(f, dog_params);
-plot(f/1000,W2, 'color', 'g')
+% Plot reference lines for CF and Spontaneous rate
+xline(CF/1000, '--', 'Color', [0.4 0.4 0.4], 'LineWidth', LINEWIDTH, 'DisplayName', 'Unit CF');
+yline(spont_rate, 'Color', [0.5 0.5 0.5], 'LineWidth', LINEWIDTH, 'DisplayName', 'Spont Rate');
 
-% W3 = dog_model(f, dog_params6);
-% plot(f/1000,W3, 'color', 'b')
+% Plot Model Curves
+plot(fpeaks./1000, gauss_predicted, 'r', 'LineWidth', 3, 'DisplayName', gauss_legend_str);
+plot(fpeaks./1000, dog_predicted, 'g', 'LineWidth', LINEWIDTH, 'DisplayName', dog_legend_str);
 
-% Plot labels
-xline(CF/1000, '--', 'linewidth', 1.5)
-title('DoG and Gaussian Kernels')
-set(gca, 'fontsize', 12)
-ylabel('Amplitude')
+% Format Panel
+grid on;
+set(gca, 'FontSize', 12)
+title('Model Fits vs. Neural Responses')
+ylabel('Avg. Firing Rate (spikes/s)')
+xlabel('Spectral Peak Frequency (kHz)')
+legend('Location', 'best')
+
+% --- Tile 2: Receptive Field Filtering Kernels ---
+nexttile
+hold on;
+
+% Plot Kernels
+plot(f_axis/1000, W_gauss, 'Color', 'r', 'LineWidth', 3, 'DisplayName', 'Gaussian Kernel');
+plot(f_axis/1000, W_dog, 'Color', 'g', 'LineWidth', LINEWIDTH, 'DisplayName', 'DoG Kernel');
+
+% Format Panel
+xline(CF/1000, '--', 'Color', [0.4 0.4 0.4], 'LineWidth', LINEWIDTH, 'DisplayName', 'Unit CF');
+grid on;
+set(gca, 'FontSize', 12, 'XScale', 'log')
+title('Estimated Frequency Tuning Kernels')
+ylabel('Filter Amplitude (a.u.)')
 xlabel('Frequency (kHz)')
-xlim([200 10000]/1000)
-set(gca, 'xscale', 'log')
-grid on
-xticks([0.1 0.2 0.5 1 2 5 10])
+xlim([200, 10000] / 1000)
+xticks([0.1, 0.2, 0.5, 1, 2, 5, 10])
+legend('Location', 'best')

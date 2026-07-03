@@ -28,7 +28,7 @@ function fig7_changes_over_level(save_fig)
 
 %% Load in data
 [~, datapath, ~, ppi] = get_paths(); 
-tables = readtable(fullfile(datapath, "LMM", "peak_picking_excludeflat.xlsx"));
+tables = readtable(fullfile(datapath, "LMM", "st_response_metrics_rate_excludeflat.xlsx"));
 spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames', true);
 

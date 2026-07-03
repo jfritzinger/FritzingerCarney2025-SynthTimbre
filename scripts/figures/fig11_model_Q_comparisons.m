@@ -38,7 +38,7 @@ colors = [0 0.4470 0.7410; 0.8500 0.3250 0.0980; 0.9290 0.6940 0.1250; 0.4940 0.
 %% Panel A: Plot Q vs CF Regressions
 for ii = 1:4
 	if ii == 1
-		tables = readtable(fullfile(datapath, "LMM", "peak_picking_excludeflat.xlsx"));
+		tables = readtable(fullfile(datapath, "LMM", "st_response_metrics_rate_excludeflat.xlsx"));
 	elseif ii == 2
 		tables = readtable(fullfile(datapath, "model_Energy_Q_thresholds.xlsx"));
 	elseif ii == 3
@@ -96,7 +96,7 @@ x_vals = [43, 63, 83];
 
 for ii = 1:4
 	if ii == 1
-		tables = readtable(fullfile(datapath, "LMM", "peak_picking_excludeflat.xlsx"));
+		tables = readtable(fullfile(datapath, "LMM", "st_response_metrics_rate_excludeflat.xlsx"));
 	elseif ii == 2
 		tables = readtable(fullfile(datapath, "model_Energy_Q_thresholds.xlsx"));
 	elseif ii == 3
@@ -168,7 +168,7 @@ hleg2.ItemTokenSize = [8, 8];
 %% Panel C: Changes in Threshold Profile Distribution
 for ii = 1:4
 	if ii == 1
-		tables = readtable(fullfile(datapath, "peak_picking_w_thresholds.xlsx"));
+		tables = readtable(fullfile(datapath, "st_response_metrics_rate.xlsx"));
 	elseif ii == 2
 		tables = readtable(fullfile(datapath, "model_Energy_Q_thresholds.xlsx"));
 	elseif ii == 3

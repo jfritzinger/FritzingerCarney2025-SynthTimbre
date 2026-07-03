@@ -30,7 +30,7 @@ function fig8_thresholds(save_fig)
 %% Load in data 
 
 [~, datapath, ~, ppi] = get_paths();
-tables = readtable(fullfile(datapath, "peak_picking_w_thresholds.xlsx"));
+tables = readtable(fullfile(datapath, "st_response_metrics_rate.xlsx"));
 spreadsheet_name = 'PutativeTable.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
 
@@ -38,7 +38,6 @@ sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableName
 %% Set up figure 
 
 figure('Position',[50,50,4.567*ppi,3*ppi])
-%data_colors = {'#03882F', '#82BB95'};
 data_colors = {'#000000'};
 legsize = 6;
 fontsize = 7;
@@ -95,7 +94,6 @@ ylim([0 max_rate+5])
 ylabel('Avg. Rate (sp/s)')
 xlabel('Spectral Peak Freq. (kHz)')
 xlim([0.4 2.4])
-%title('Example Unit with Threshold')
 
 [threshold_percent, threshold_freq, slope_rate] = calculateThresholds(fpeaks, rate, rate_std, CF);
 plot(threshold_freq/1000, slope_rate, 'r', 'LineWidth',1.5)
@@ -121,23 +119,18 @@ thresholds = tables.Threshold(index);
 
 % Plot
 h(2) = subplot(2, 9, [4 5 6]);
-%edges = linspace(0, 30, 16);
 edges = linspace(0, 30, 31);
 
 histogram(thresholds, edges, 'EdgeColor','k', 'FaceColor',[0.4 0.4 0.4])
 xlabel('Threshold (%)')
 ylabel('# Neurons')
 set(gca, 'fontsize', fontsize)
-%title('Histogram of Thresholds')
 hold on
 xline(4, 'r', 'LineWidth',linewidth)
 xlim([0 30])
 ylim([0 22])
 box off
 grid on
-
-% Percent <4% threshold
-%percent = sum(thresholds<=4)/length(thresholds)*100;
 hleg = legend('Neural', 'Human', 'box', 'off');
 hleg.ItemTokenSize = [8,8];
 
@@ -165,14 +158,9 @@ for ibin = 2
 		Qs(Qs>50) = 50;
 
 		% Plot
-		%gfig = gscatter(CFs/1000, Qs,peaks, 'filled');
-		%set(gfig, 'MarkerEdgeColor', 'k');
 		scatter(CFs/1000, Qs, scattersize, 'filled', 'MarkerEdgeColor','k', ...
 			'MarkerFaceColor','k', 'MarkerFaceAlpha',0.5)
 		hold on
-
-		% Plot minimum thresholds based on stimuli
-		%plot(CFs_array/1000, min_threshold, 'r', 'LineWidth',2)
 
 		% Plot human threshold
 		scatter(1200/1000, 4,scattersize, 'r', 'filled','markeredgecolor', 'k') %'filled')
@@ -200,12 +188,7 @@ for ibin = 2
 	end
 end
 
-%% Thresholds over level  
-
-% Get minimum thresholds 
-% CFs_array = linspace(200, 10000, 100);
-% min_threshold = 35./CFs_array*100;
-
+%% Thresholds over level
 
 % Set up figure 
 h(4) = subplot(2, 9, [10 11 12]);
@@ -229,7 +212,6 @@ for ibin = 2
 		thresh2(isoutlier(thresh2)) = [];
 
 		% Put into arrays
-		
 		if ispl == 4
 			all_thresholds(3,1:length(thresh)) = thresh;
 			hold on
@@ -274,7 +256,6 @@ is200 = tables.F0 == 200;
 
 SPLs = [43, 63, 73, 83];
 qs = NaN(num_units, 4);
-CF_group = zeros(num_units, 1);
 for isesh = 1:num_units
 	putative = neurons{isesh};
 	isput = cellfun(@(s) strcmp(s, putative), tables.Putative);
@@ -282,7 +263,6 @@ for isesh = 1:num_units
 		ind = isput & isbin & is200 & tables.SPL==SPLs(ispl);
 		if any(ind)
 			qs(isesh, ispl) = tables.Threshold(ind);
-			CF_group(isesh) = tables.CF_Group(ind);
 		end
 	end
 end

@@ -199,7 +199,7 @@ for ineuron = 1:4
 end
 
 % Load in spreadsheet with peak information
-spreadsheet_name = 'peak_picking_VS.xlsx';
+spreadsheet_name = 'st_response_metrics_VS.xlsx';
 table = readtable(fullfile(datapath, spreadsheet_name));
 h(5) = subplot(5, 5, 5);
 spl = [43, 63, 73, 83];

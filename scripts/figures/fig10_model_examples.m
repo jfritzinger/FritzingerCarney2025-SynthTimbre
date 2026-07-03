@@ -150,7 +150,7 @@ end
 %%
 
 % Load in spreadsheet
-spreadsheet_name = 'model_r2_values_ST.xlsx';
+spreadsheet_name = 'model_st_r2_values.xlsx';
 sessions = readtable(fullfile(datapath, spreadsheet_name), 'PreserveVariableNames',true);
 subplot_numbers = [7, 10];
 isSPL = sessions.SPL == 63;
